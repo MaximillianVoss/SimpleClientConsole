@@ -4,10 +4,9 @@ import Server.Server;
 public class Main {
     public static void main(String[] args) {
         try {
-            Server server = new Server(8081, "/src/Server/Files/");
-            server.Start();
-            Client client = new Client("localhost", 8081, "/src/Client/Files/");
-            client.Start();
+            int port =8081;
+            Server server = new Server(port,System.getProperty("user.dir") + "/src/Server/");
+            Client client = new Client("localhost", port,"Client1", System.getProperty("user.dir") + "/src/Client/" + "ClientFiles1");
         } catch (Exception e) {
             System.out.println(e.getMessage());
             e.printStackTrace();
