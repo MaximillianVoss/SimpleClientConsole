@@ -2,11 +2,14 @@ package Client;
 
 import BaseWeb.BaseWebClient;
 
-import java.io.File;
+import java.io.File;//для создания, поиска, удаления файлов и каталогов и т.д
+import java.io.FileInputStream;
 import java.net.Socket;
 import java.util.ArrayList;
 
 public class Client extends BaseWebClient {
+
+    private File[] prevList;
 
     public Client() throws Exception {
 
@@ -23,34 +26,51 @@ public class Client extends BaseWebClient {
     public void run() {
         try {
             this.socket = new Socket(this.address, this.port);
-//            File[] serverFilesList = (File[])Get();
-//            File folder = new File(System.getProperty("user.dir") + folderName);
-//            File[] listOfFiles = folder.listFiles();
-//            ArrayList<File> differece = GetDifference(serverFilesList,listOfFiles);
-//            Send(differece);
             this.started = true;
             this.currentState = State.compareList;
             while (this.started) {
                 sleep(1000);
-
-                //Send(this.username);
-                //File[] files = GetDirInfo(this.folderName);
-                //Send(files);
-                //ArrayList<File> differece = (ArrayList<File>) Get();
-                //System.out.println(differece);
-//                State answer = (State) Get();
-                switch (this.currentState){
+                switch (this.currentState) {
                     case compareList:
-                        PrintMesage("comp list");
+                        PrintMesage(this.username + " compare files list");
                         Send(State.compareList);
-                        this.currentState=State.sendFiles;
+                        Send(this.username);
+                        this.currentState = State.sendFiles;
                         break;
                     case sendFiles:
-                        PrintMesage("send files");
-                        ArrayList<File> differece = (ArrayList<File>) Get();
+                        PrintMesage(this.username + " send files");
+                        File[] serverFiles = (File[]) Get();
+                        File[] files = GetDirInfo(this.folderName);
+                        ArrayList<String> difference = GetDifference(serverFiles, files);
+                        Send(State.deletingFiles);
+                        Send(difference);
+                        for (String fileName : difference) {
+                            File file = new File(this.folderName + "/" + fileName);
+                            if (file.exists()) {
+                                byte[] bytesArray = new byte[(int) file.length()];
+                                FileInputStream fis = new FileInputStream(file);
+                                fis.read(bytesArray);
+                                fis.close();
+                                Send(State.createFile);
+                                Send(file.getName());
+                                Send(State.getFiles);
+                                Send(bytesArray);
+                                PrintMesage(this.username + " send " + file.getName());
+                            }
+                        }
+                        Send(State.waiting);
+                        this.currentState = State.checkFiles;
+                        this.prevList = GetDirInfo(this.folderName);
+                        break;
+                    case checkFiles:
+                        if (GetDifference(GetDirInfo(this.folderName), this.prevList).size() > 0) {
+                            this.currentState = State.compareList;
+                            PrintMesage("Files change detected on " + this.username);
+                        } else
+                            PrintMesage("No files changes on " + this.username);
                         break;
                     case close:
-                        PrintMesage("clse");
+                        PrintMesage("close");
                         break;
                 }
             }

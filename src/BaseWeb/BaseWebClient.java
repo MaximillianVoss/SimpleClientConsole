@@ -1,31 +1,34 @@
 package BaseWeb;
 
 import java.io.File;
-import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.*;
 import java.util.ArrayList;
 
 public class BaseWebClient extends Thread {
-    public ServerSocket welcomeSocket;
-    public ServerSocket serverSocket;
+    public ServerSocket welcomeSocket;// Сокет на порту this.port
+    public ServerSocket serverSocket;//
     public Socket socket;
     public ObjectInputStream inStream;
     public ObjectOutputStream outStream;
     public String folderName;
-    public  String username;
+    public String username;
     public char delimeter;
     public String address;
     public int port;
     public boolean started;
     public int timeOut;
     public State currentState;
+
     public enum State {
         waiting,
         compareList,
+        deletingFiles,
+        createFile,
         getFiles,
         sendFiles,
+        checkFiles,
         close
     }
 
@@ -35,12 +38,12 @@ public class BaseWebClient extends Thread {
 
     public BaseWebClient() throws Exception {
         this(8080, "/Folder/");
-    }
+    } //?
 
     public BaseWebClient(int port, String folderName) throws Exception {
-        this.welcomeSocket = null;
-        this.serverSocket = null;
-        this.socket = null;
+        //this.welcomeSocket = null;//
+        //this.serverSocket = null;
+        this.socket = null; // по умолчанию
         this.inStream = null;
         this.outStream = null;
         this.folderName = folderName;
@@ -70,27 +73,32 @@ public class BaseWebClient extends Thread {
         return object;
     }
 
-    public void PrintMesage(String message){
+    public void PrintMesage(String message) {
         System.out.println(message);
     }
 
-    public ArrayList<File> GetDifference(File[] files1, File[] files2) {
-        ArrayList<File> list = new ArrayList<File>();
-        for (int i = 0; i < files1.length; i++) {
-            boolean found = false;
-            for (int j = 0; j < files2.length; j++) {
-                if (files1[i].getName() == files2[j].getName()) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found)
-                list.add(files1[i]);
+    public ArrayList<String> GetDifference(File[] files1, File[] files2) {
+        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> fileNames1 = new ArrayList<String>();
+        ArrayList<String> fileNames2 = new ArrayList<String>();
+        for (File file : files1)
+            fileNames1.add(file.getName());
+        for (File file : files2)
+            fileNames2.add(file.getName());
+        for (int i = 0; i < fileNames1.size(); i++) {
+            if (fileNames2.remove(fileNames1.get(i)))
+                fileNames1.remove(fileNames1.get(i));
         }
+        for (int i = 0; i < fileNames2.size(); i++) {
+            if (fileNames1.remove(fileNames2.get(i)))
+                fileNames2.remove(fileNames2.get(i));
+        }
+        list.addAll(fileNames1);
+        list.addAll(fileNames2);
         return list;
     }
 
-    public File[] GetDirInfo(String path){
+    public File[] GetDirInfo(String path) {
         File folder = new File(path);
         return folder.listFiles();
     }
